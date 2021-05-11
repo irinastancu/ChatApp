@@ -5,9 +5,6 @@ import io.grpc.stub.StreamObserver;
 import proto.Chat;
 import proto.ChatServiceGrpc;
 
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
