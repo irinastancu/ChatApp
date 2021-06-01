@@ -12,18 +12,18 @@ import java.util.logging.Level;
 
 public class ChatServiceImpl extends ChatServiceGrpc.ChatServiceImplBase {
 
-    private Logger logger = Logger.getLogger(ChatServiceImpl.class.getName());
+    public static Logger logger = Logger.getLogger(ChatServiceImpl.class.getName());
     private static Set<StreamObserver<Chat.ChatMessageFromServer>> observers = ConcurrentHashMap.newKeySet();
 
     @Override
     public StreamObserver<Chat.ChatMessage> chat(StreamObserver<Chat.ChatMessageFromServer> responseObserver) {
         observers.add(responseObserver);
+        logger.log(Level.INFO, "Client Connected");
 
         return new StreamObserver<Chat.ChatMessage>() {
             @Override
             public void onNext(Chat.ChatMessage value) {
-                //System.out.println(value);
-                logger.info(value.toString());
+                logger.log(Level.INFO, "message " + value.toString());
                 Chat.ChatMessageFromServer message = Chat.ChatMessageFromServer.newBuilder()
                         .setMessage(value)
                         .setTimestamp(Timestamp.newBuilder().setSeconds(System.currentTimeMillis() / 1000))
@@ -36,12 +36,13 @@ public class ChatServiceImpl extends ChatServiceGrpc.ChatServiceImplBase {
 
             @Override
             public void onError(Throwable t) {
-                //TBA
+                logger.log(Level.WARNING, "Error");
             }
 
             @Override
             public void onCompleted() {
                 observers.remove(responseObserver);
+                logger.log(Level.INFO, "Client Disconnected");
             }
         };
     }

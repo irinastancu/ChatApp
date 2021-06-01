@@ -5,18 +5,18 @@ import io.grpc.ServerBuilder;
 import service.ChatServiceImpl;
 
 import java.io.IOException;
+import java.util.logging.Level;
 
 public class ChatMain {
     public static void main(String[] args) {
 
         try {
             Server server = ServerBuilder.forPort(8999).addService(new ChatServiceImpl()).build();
-
             server.start();
-            System.out.println("Server started at " + server.getPort());
+            ChatServiceImpl.logger.log(Level.INFO, "Server started at " + server.getPort());
             server.awaitTermination();
         } catch (IOException | InterruptedException e) {
-            System.out.println("Error: " + e);
+            ChatServiceImpl.logger.log(Level.INFO, "Error: " + e);
         }
     }
 }
