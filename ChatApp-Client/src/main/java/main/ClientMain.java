@@ -7,17 +7,14 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
+import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import proto.Chat;
 import proto.ChatServiceGrpc;
 
@@ -25,8 +22,11 @@ import java.io.IOException;
 
 public class ClientMain extends Application {
     private ObservableList<String> messages = FXCollections.observableArrayList();
+    private ObservableList<String> users = FXCollections.observableArrayList();
+
     private ListView<String> messagesView = new ListView<>();
-    private TextField name = new TextField("nickname");
+    private ListView<String> usersView = new ListView<>();
+    private TextField name = new TextField("YourName");
     private TextField message = new TextField();
     private Button send = new Button();
 
@@ -36,32 +36,14 @@ public class ClientMain extends Application {
 
     @Override
     public void start(Stage primaryStage) throws IOException {
-        try {
 
-            FXMLLoader fxmlLoader = new FXMLLoader(getClass().getResource("/gui/views/main.fxml"));
-            Parent root = (Parent) fxmlLoader.load();
-            Scene newScene = new Scene(root);
-            //newScene.getRoot().setEffect(new DropShadow(10, Color.rgb(100, 100, 100)));
-            newScene.setFill(Color.TRANSPARENT);
+        messagesView.setItems(messages);
+        usersView.setItems(users);
 
-           //  set the title and icon of the main window
-            primaryStage.setTitle("ChatApp");
-            primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/gui/logos/chatapplogo.png")));
-
-            primaryStage.setScene(newScene);
-            primaryStage.initStyle(StageStyle.TRANSPARENT);
-            primaryStage.show();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-
-        //ASTA E CE A FOST INAINTE
-
-     /*   messagesView.setItems(messages);
+        usersView.setStyle("-fx-background-color: linear-gradient(from 0px 0px to 300px 200px, #73D4FFff, #958BE8ff); -fx-control-inner-background: transparent");
 
         send.setText("Send");
+        send.setStyle("-fx-text-fill: BLACK; -fx-background-color: SKYBLUE");
 
         BorderPane pane = new BorderPane();
         pane.setLeft(name);
@@ -70,25 +52,32 @@ public class ClientMain extends Application {
 
         BorderPane root = new BorderPane();
         root.setCenter(messagesView);
+        root.setLeft(usersView);
         root.setBottom(pane);
+        BorderPane.setAlignment(usersView, Pos.BOTTOM_LEFT);
 
-        Scene scene = new Scene(root, 500, 500);
-
+        Scene scene = new Scene(root, 800, 500);
         primaryStage.setTitle("Chat");
         primaryStage.setScene(scene);
-
+        primaryStage.getIcons().add(new Image(getClass().getResourceAsStream("/gui/logos/chatapplogo.png")));
 
         primaryStage.show();
 
         ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 8999).usePlaintext().build();
         ChatServiceGrpc.ChatServiceStub chatService = ChatServiceGrpc.newStub(channel);
-
         StreamObserver<Chat.ChatMessage> chat = chatService.chat(new StreamObserver<Chat.ChatMessageFromServer>() {
             @Override
             public void onNext(Chat.ChatMessageFromServer value) {
                 Platform.runLater(() -> {
                     messages.add(value.getMessage().getFrom() + ": " + value.getMessage().getMessage());
                     messagesView.scrollTo(messages.size());
+
+                    if (!users.contains(name.getText()) && !name.getText().equals("YourName")) {
+                        users.add(name.getText());
+                        usersView.scrollTo(users.size());
+
+                    }
+
                 });
             }
 
@@ -103,12 +92,14 @@ public class ClientMain extends Application {
                 System.out.println("Disconnected");
             }
         });
-
         send.setOnAction(e -> {
             chat.onNext(Chat.ChatMessage.newBuilder().setFrom(name.getText()).setMessage(message.getText()).build());
             message.setText("");
         });
-        primaryStage.setOnCloseRequest(e -> {chat.onCompleted(); channel.shutdown(); });*/
+        primaryStage.setOnCloseRequest(e -> {
+            chat.onCompleted();
+            channel.shutdown();
+        });
     }
 
 }
