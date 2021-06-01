@@ -14,17 +14,25 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontPosture;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import proto.Chat;
 import proto.ChatServiceGrpc;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class ClientMain extends Application {
-    private ObservableList<String> messages = FXCollections.observableArrayList();
+    private ObservableList<TextFlow> messages = FXCollections.observableArrayList();
     private ObservableList<String> users = FXCollections.observableArrayList();
 
-    private ListView<String> messagesView = new ListView<>();
+    private ListView<TextFlow> messagesView = new ListView<>();
     private ListView<String> usersView = new ListView<>();
     private TextField name = new TextField("YourName");
     private TextField message = new TextField();
@@ -69,15 +77,12 @@ public class ClientMain extends Application {
             @Override
             public void onNext(Chat.ChatMessageFromServer value) {
                 Platform.runLater(() -> {
-                    messages.add(value.getMessage().getFrom() + ": " + value.getMessage().getMessage());
+                    messages.add(checkMessage(new Text(value.getMessage().getFrom() + ": " + value.getMessage().getMessage())));
                     messagesView.scrollTo(messages.size());
-
                     if (!users.contains(name.getText()) && !name.getText().equals("YourName")) {
                         users.add(name.getText());
                         usersView.scrollTo(users.size());
-
                     }
-
                 });
             }
 
@@ -102,4 +107,72 @@ public class ClientMain extends Application {
         });
     }
 
+    public TextFlow checkMessage(Text message){
+        List<Pattern> patterns = new ArrayList<Pattern>();
+
+        patterns.add(Pattern.compile("\\ \\*.+\\*\\ ",Pattern.CASE_INSENSITIVE)); //BOLD
+        patterns.add(Pattern.compile("\\ \\_.+\\_\\ ",Pattern.CASE_INSENSITIVE)); //ITALIC
+        patterns.add(Pattern.compile("\\ \\'.+\\'\\ ",Pattern.CASE_INSENSITIVE)); //UNDERLINE
+        patterns.add(Pattern.compile("\\ \\~.+\\~\\ ",Pattern.CASE_INSENSITIVE)); //STRIKETHROUGH
+
+        TextFlow flow = new TextFlow(message);
+
+        for (Pattern pattern : patterns) {
+            Matcher matcher = pattern.matcher((CharSequence) ((Text) flow.getChildren().get(getLastIndexOfTextFlow(flow))).getText());
+            if(matcher.find()) {
+                flow = formatMessage(flow, matcher, pattern);
+            }
+        }
+
+        return flow;
+    }
+
+    public TextFlow formatMessage(TextFlow message, Matcher matcher, Pattern pattern){
+        Text text = (Text)message.getChildren().get(getLastIndexOfTextFlow(message));
+
+        String formatString = text.getText();
+        Text frontText = new Text(formatString.substring(0,matcher.start()+1));
+        Text middleText = new Text(formatString.substring(matcher.start()+2,matcher.end()-2));
+        Text endText = new Text(formatString.substring(matcher.end()-1,formatString.length()));
+
+        //TextFlowcomboFlow=newTextFlow();
+        //comboFlow=checkMessage(middleText);
+
+        switch (pattern.pattern()) {
+            case "\\ \\*.+\\*\\ ":
+                middleText.setStyle("-fx-font-weight: bold");
+                break;
+            case "\\ \\_.+\\_\\ " :
+                middleText.setFont(Font.font("Segue UI", FontPosture.ITALIC, 12));
+                break;
+            case "\\ \\'.+\\'\\ " :
+                middleText.setUnderline(true);
+                break;
+            case "\\ \\~.+\\~\\ " :
+                middleText.setStrikethrough(true);
+                break;
+        }
+        message.getChildren().remove(getLastIndexOfTextFlow(message));
+        message.getChildren().addAll(frontText,middleText,endText);
+
+        //List<Text>textList=newArrayList<Text>();
+        //for(javafx.scene.NodecomboText:comboFlow.getChildren()){
+        //TexttextToAdd=(Text)comboText;
+        //textList.add(textToAdd);
+        //}
+
+        //message.getChildren().addAll(textList);
+        //message.getChildren().add(endText);
+
+        return message;
+    }
+
+    public int getLastIndexOfTextFlow(TextFlow text) {
+        int counter = 0;
+
+        for(javafx.scene.Node node : text.getChildren()) {
+            counter++;
+        }
+        return counter - 1;
+    }
 }
